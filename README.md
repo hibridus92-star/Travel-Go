@@ -64,3 +64,6 @@ The current codebase models trips as a collection of activities organised in a c
 ## Author
 
 Jose Quintero. Built as a learning project and as a TFG.
+
+
+
