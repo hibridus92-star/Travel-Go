@@ -1,0 +1,11 @@
+# PyCharm
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Saved trip data (keep the folder, not the contents)
+data/*.json
