@@ -3,6 +3,8 @@ import os
 
 from models.activity import GuideTour, Pubcrawl
 from models.trip import Trip
+from datetime import date
+from models.User import User
 
 DATA_FILE: str = os.path.join("data", "malta.json")
 
@@ -24,6 +26,15 @@ def main() -> None:
 
     print(isinstance(loaded_trip.activities[0], GuideTour))
     print(isinstance(loaded_trip.activities[1], Pubcrawl))
+
+    users = [
+        User("Ana", "López", date(2000, 3, 10), "Murcia", "España", ["es"]),
+        User("Luis", "García", date(2000, 12, 20), "Madrid", "España", ["es"]),
+        User("Eva", "Martín", date(2000, 10, 14), "Alicante", "España", ["es"]),
+    ]
+
+    for user in users:
+        print(user.name, user.age)
 
 
 if __name__ == "__main__":
