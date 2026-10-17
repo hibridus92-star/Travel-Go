@@ -5,7 +5,7 @@ Current domain model of Travel&Go. GitHub renders the diagram below automaticall
 ```mermaid
 classDiagram
     class Activity {
-        -events_count : int$
+        +events_count : int$
         +name : str
         +location : str
         +price : float
@@ -41,19 +41,54 @@ classDiagram
         +load(filename: str)$ Trip
     }
 
+    class User {
+        +name : str
+        +surname : str
+        +birth_date : date
+        +city : str
+        +country : str
+        +languages : list~str~
+        #_user_id : str
+        #_travel_points : int
+        +guide_profile : object
+        +trips : list~Trip~
+        +user_id : str
+        +age : int
+        +travel_points : int
+        +earn_points(amount: int)
+        +redeem_points(amount: int)
+    }
+
     class InvalidTypeError {
         +type : str
+    }
+
+    class PointsError
+
+    class InvalidPointsAmountError {
+        +amount : int
+    }
+
+    class InsufficientPointsError {
+        +amount : int
+        +balance : int
     }
 
     Activity <|-- GuideTour
     Activity <|-- Pubcrawl
     Trip o-- "many" Activity : activities
+    User o-- "many" Trip : trips
     InvalidTypeError --|> Exception
+    PointsError --|> Exception
+    InvalidPointsAmountError --|> PointsError
+    InsufficientPointsError --|> PointsError
 ```
 
 ## Notes
 
 - **Inheritance:** `GuideTour` and `Pubcrawl` extend `Activity`.
-- **Aggregation:** a `Trip` holds references to `Activity` objects that exist independently of it.
+- **Aggregation:** a `Trip` holds references to `Activity` objects that exist independently of it, and a `user.py` holds references to its `Trip` objects. Both relations are one-directional: `Trip` does not know its user, and `Activity` does not know its trip.
 - **Static and class members** are marked with `$`.
-- `InvalidTypeError` is raised when a saved activity has an unknown `type` field while loading from JSON.
+- **Read-only properties:** `User.age` is computed from `birth_date`, and `User.travel_points` can only change through `earn_points` and `redeem_points`, which validate every amount.
+- **Guide status:** `guide_profile` is `None` until the user becomes a guide.
+- **Exceptions:** `InvalidTypeError` is raised when a saved activity has an unknown `type` field while loading from JSON. `InvalidPointsAmountError` and `InsufficientPointsError` share the base class `PointsError`, so both can be caught together.
