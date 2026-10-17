@@ -4,8 +4,7 @@
 from __future__ import annotations
 
 from datetime import date
-from uuid import UUID
-
+import uuid
 from models.trip import Trip
 
 from exceptions.errors import (
