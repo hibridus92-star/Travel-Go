@@ -7,6 +7,11 @@ from datetime import date
 
 from models.trip import Trip
 
+from exceptions.errors import (
+    InvalidPointsAmountError,
+    InsufficientPointsError,
+)
+
 
 class User:
     def __init__(self, name: str, surname: str, birth_date: date, city: str,
@@ -35,6 +40,32 @@ class User:
             age -= 1
 
         return age
+
+
+    @property
+    def travel_points(self) -> int:
+        """Return the user's current travel points balance."""
+        return self._travel_points
+
+    def earn_points(self, amount: int) -> None:
+        """Add travel points to the user's balance."""
+        if amount <= 0:
+            raise InvalidPointsAmountError(amount)
+
+        self._travel_points += amount
+
+    def redeem_points(self, amount: int) -> None:
+        """Redeem travel points if the user has enough points."""
+        if amount <= 0:
+            raise InvalidPointsAmountError(amount)
+
+        if amount > self._travel_points:
+            raise InsufficientPointsError(
+                amount, self._travel_points
+            )
+
+        self._travel_points -= amount
+
 
 
 
