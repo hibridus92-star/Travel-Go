@@ -48,9 +48,11 @@ classDiagram
         +city : str
         +country : str
         +languages : list~str~
+        #_user_id : str
         #_travel_points : int
         +guide_profile : object
         +trips : list~Trip~
+        +user_id : str
         +age : int
         +travel_points : int
         +earn_points(amount: int)

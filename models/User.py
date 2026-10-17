@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from datetime import date
+from uuid import UUID
 
 from models.trip import Trip
 
@@ -13,9 +14,11 @@ from exceptions.errors import (
 )
 
 
+
 class User:
     def __init__(self, name: str, surname: str, birth_date: date, city: str,
-                 country: str, languages: list[str]) -> None:
+                 country: str, languages: list[str], user_id: str | None = None):
+
         self.name: str = name
         self.surname: str = surname
         self.birth_date: date = birth_date
@@ -23,10 +26,20 @@ class User:
         self.country: str = country
         self.languages: list[str] = list(languages)  # copy, so the caller's list is not shared
 
+        # A new user gets a fresh ID; a user loaded from disk keeps the one it had
+        if user_id is None:
+            user_id = str(uuid.uuid4())
+        self._user_id: str = user_id
+
         # A new user has no points, no trips and is not a guide yet
         self._travel_points: int = 0
         self.guide_profile: object | None = None
         self.trips: list[Trip] = []
+
+    @property
+    def user_id(self) -> str:
+        """Return the user's unique ID (read-only)."""
+        return self._user_id
 
     # Calculate age and subtract one year if the birthday hasn't occurred yet this year.
     @property
