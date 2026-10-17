@@ -1,10 +1,12 @@
 """Demo: build a trip, save it to JSON and load it back."""
 import os
 
+from exceptions.errors import InsufficientPointsError
 from models.activity import GuideTour, Pubcrawl
 from models.trip import Trip
 from datetime import date
-from models.User import User
+from models.user import User
+
 
 DATA_FILE: str = os.path.join("data", "malta.json")
 
@@ -33,8 +35,11 @@ def main() -> None:
         User("Eva", "Martín", date(2000, 10, 14), "Alicante", "España", ["es"]),
     ]
 
-    for user in users:
-        print(user.name, user.age)
+    ana: User = User("Ana", "Lopez", date(1995, 4, 12), "Madrid", "Spain", ["Spanish"])
+    luis: User = User("Luis", "Gil", date(1990, 1, 3), "Murcia", "Spain", ["Spanish"])
+
+
+
 
 
 if __name__ == "__main__":
