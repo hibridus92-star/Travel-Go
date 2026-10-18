@@ -4,13 +4,39 @@ from __future__ import annotations
 import json
 
 from models.activity import Activity, Pubcrawl
+from exceptions.errors import (
+    DuplicateParticipantError,
+    ParticipantNotFoundError,
+)
 
 
 class Trip:
-    def __init__(self, id_number: int, destination: str, activities: list[Activity]) -> None:
+    def __init__(self, id_number: int, destination: str, activities: list[Activity],participant_ids: list[str] | None = None):
         self.id_number: int = id_number
         self.destination: str = destination
         self.activities: list[Activity] = activities
+        self._participant_ids: list[str] = (
+            list(participant_ids) if participant_ids is not None else []
+        )
+
+    @property
+    def participant_ids(self) -> list[str]:
+        """Return a copy of the trip's participant IDs."""
+        return list(self._participant_ids)
+
+    def add_participant(self, user_id: str) -> None:
+        """Add a participant to the trip."""
+        if user_id in self._participant_ids:
+            raise DuplicateParticipantError(user_id)
+
+        self._participant_ids.append(user_id)
+
+    def remove_participant(self, user_id: str) -> None:
+        """Remove a participant from the trip."""
+        if user_id not in self._participant_ids:
+            raise ParticipantNotFoundError(user_id)
+
+        self._participant_ids.remove(user_id)
 
     def event_total_cost(self) -> float:
         cost: float = 0.0
