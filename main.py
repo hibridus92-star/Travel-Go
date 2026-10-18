@@ -1,7 +1,11 @@
 """Demo: build a trip, save it to JSON and load it back."""
 import os
 
-from exceptions.errors import InsufficientPointsError
+from exceptions.errors import (
+    DuplicateParticipantError,
+    ParticipantNotFoundError,
+)
+
 from models.activity import GuideTour, Pubcrawl
 from models.trip import Trip
 from datetime import date
@@ -29,18 +33,42 @@ def main() -> None:
     print(isinstance(loaded_trip.activities[0], GuideTour))
     print(isinstance(loaded_trip.activities[1], Pubcrawl))
 
-    users = [
-        User("Ana", "López", date(2000, 3, 10), "Murcia", "España", ["es"]),
-        User("Luis", "García", date(2000, 12, 20), "Madrid", "España", ["es"]),
-        User("Eva", "Martín", date(2000, 10, 14), "Alicante", "España", ["es"]),
-    ]
 
-    ana: User = User("Ana", "Lopez", date(1995, 4, 12), "Madrid", "Spain", ["Spanish"])
-    luis: User = User("Luis", "Gil", date(1990, 1, 3), "Murcia", "Spain", ["Spanish"])
+    # 1. A trip without participants starts empty
+    trip01: Trip = Trip(1, "Rome", [historic_walk])
+    print("1:", trip01.participant_ids)
 
+    # 2. Two trips: adding to one must not affect the other
+    trip02: Trip = Trip(2, "Paris", [])
+    trip01.add_participant("a")
+    print("2: trip01 =", trip01.participant_ids, "| trip02 =", trip02.participant_ids)
 
+    # 3. Several participants, in order
+    trip01.add_participant("b")
+    print("3:", trip01.participant_ids)
 
+    # 4. Duplicate: must fail, and the list must not change
+    try:
+        trip01.add_participant("a")
+    except DuplicateParticipantError as e:
+        print("4:", e)
+    print("   list unchanged:", trip01.participant_ids)
 
+    # 5. Removing someone who is not there
+    try:
+        trip01.remove_participant("z")
+    except ParticipantNotFoundError as e:
+        print("5:", e)
+
+    # 6. The returned list is a copy: appending to it must not affect the trip
+    trip01.participant_ids.append("x")
+    print("6:", trip01.participant_ids)
+
+    # 7. The constructor copies the list it receives
+    ids: list[str] = ["a", "b"]
+    trip03: Trip = Trip(3, "Lima", [], ids)
+    ids.append("c")
+    print("7: trip03 =", trip03.participant_ids, "| original list =", ids)
 
 if __name__ == "__main__":
     main()
