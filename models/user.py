@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from datetime import date
 import uuid
-from models.trip import Trip
 
 from exceptions.errors import (
     InvalidPointsAmountError,
@@ -33,7 +32,6 @@ class User:
         # A new user has no points, no trips and is not a guide yet
         self._travel_points: int = 0
         self.guide_profile: object | None = None
-        self.trips: list[Trip] = []
 
     @property
     def user_id(self) -> str:
