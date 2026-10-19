@@ -62,6 +62,7 @@ class Trip:
             'id_number': self.id_number,
             'destination': self.destination,
             'activities': activities_as_dicts,
+            'participant_ids': self.participant_ids
         }
 
     def save(self, filename: str) -> None:
@@ -81,4 +82,6 @@ class Trip:
         activities: list[Activity] = [
             Activity.activity_from_dict(a) for a in data['activities']
         ]
-        return cls(data['id_number'], data['destination'], activities)
+
+        participant_ids: list[str] = data.get('participant_ids', [])
+        return cls(data['id_number'], data['destination'], activities, participant_ids)
