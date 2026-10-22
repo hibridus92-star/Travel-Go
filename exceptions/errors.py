@@ -30,6 +30,15 @@ class InsufficientPointsError(PointsError):
                 f"only {balance} points available."
             )
 
+class InvalidTravelPointsBalanceError(Exception):
+    """Raised when a saved travel points balance is negative."""
+
+    def __init__(self, balance: int) -> None:
+        self.balance: int = balance
+        super().__init__(
+            f"Travel points balance cannot be negative, got {balance}."
+        )
+
 class ParticipantError(Exception):
     """Base exception for trip participant errors."""
 
