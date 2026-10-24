@@ -86,7 +86,7 @@ class User:
             'birth_date': self.birth_date.isoformat(),
             'city': self.city,
             'country': self.country,
-            'languages': self.languages,
+            'languages': list(self.languages),
             'travel_points': self.travel_points,
         }
 
@@ -106,10 +106,11 @@ class User:
             city=data['city'],
             country=data['country'],
             languages=data['languages'],
+            user_id=data['user_id']
+
         )
 
-        # Restore the ID and points inside the class.
-        user._user_id = data['user_id']
+        # Restore the saved points; they cannot go through the constructor.
         user._travel_points = balance
 
         return user
