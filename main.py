@@ -1,16 +1,38 @@
-"""Demo: build a trip, save it to JSON and load it back."""
+"""Demo: exercise the Travel&Go domain model and its JSON persistence."""
 import json
 import os
+from datetime import date
 
 from exceptions.errors import (
     DuplicateParticipantError,
     ParticipantNotFoundError,
+    InvalidTravelPointsBalanceError,
 )
 from models.activity import GuideTour, Pubcrawl
 from models.trip import Trip
-
+from models.user import User
 
 DATA_FILE: str = os.path.join("data", "malta.json")
+
+
+def demo_trip_persistence() -> None:
+    """Demonstrate that a trip and its activities survive saving and loading."""
+    historic_walk: GuideTour = GuideTour("Historic Walk", "Central Square", 10.00, True)
+    drinkers_night: Pubcrawl = Pubcrawl("Drinkers Night", "The Dolphin Shire", 25.90, 2)
+    malta: Trip = Trip(2334, "La Valleta", [historic_walk, drinkers_night])
+
+    malta.save(DATA_FILE)
+    print("Trip saved successfully.")
+
+    loaded_trip: Trip = Trip.load(DATA_FILE)
+    print("\nTrip loaded successfully.")
+    print(f"Destination: {loaded_trip.destination}")
+    print(f"ID: {loaded_trip.id_number}")
+    print(f"Total cost: {loaded_trip.event_total_cost()}")
+    print(f"Alcoholic events: {loaded_trip.alcoholic_events()}")
+
+    print(isinstance(loaded_trip.activities[0], GuideTour))
+    print(isinstance(loaded_trip.activities[1], Pubcrawl))
 
 
 def demo_participants(activity: GuideTour) -> None:
@@ -78,30 +100,56 @@ def demo_participant_persistence() -> None:
     print(old_trip.destination, old_trip.participant_ids)  # La Valleta []
 
 
+def demo_user_persistence() -> None:
+    """Demonstrate that a user survives saving and loading."""
+    user_file: str = os.path.join("data", "test_user.json")
+
+    # Round trip through a real file
+    ana: User = User("Ana", "Lopez", date(2000, 3, 10), "Murcia", "Spain", ["es"])
+    ana.earn_points(100)
+    with open(user_file, "w") as f:
+        json.dump(ana.to_dict(), f, indent=4)
+
+    with open(user_file, "r") as f:
+        loaded: User = User.from_dict(json.load(f))
+    print("Same ID:", loaded.user_id == ana.user_id)
+    print("Points:", loaded.travel_points)  # 100
+    print("birth_date type:", type(loaded.birth_date).__name__)  # date
+
+    # The lists are independent copies
+    data: dict = ana.to_dict()
+    data["languages"].append("en")
+    print("Ana's languages:", ana.languages)  # ['es']
+
+    # A user with zero points can be restored
+    eva: User = User("Eva", "Ruiz", date(2000, 6, 1), "Lima", "Peru", ["es"])
+    print("Zero points:", User.from_dict(eva.to_dict()).travel_points)  # 0
+
+    # A corrupted balance is rejected
+    corrupted: dict = ana.to_dict()
+    corrupted["travel_points"] = -50
+    try:
+        User.from_dict(corrupted)
+    except InvalidTravelPointsBalanceError as e:
+        print("Rejected:", e)
+
+
 def main() -> None:
     historic_walk: GuideTour = GuideTour("Historic Walk", "Central Square", 10.00, True)
-    drinkers_night: Pubcrawl = Pubcrawl("Drinkers Night", "The Dolphin Shire", 25.90, 2)
-    malta: Trip = Trip(2334, "La Valleta", [historic_walk, drinkers_night])
 
-    malta.save(DATA_FILE)
-    print("Trip saved successfully.")
+    # Active demo
+    print("--- User persistence ---")
+    demo_user_persistence()
 
-    loaded_trip: Trip = Trip.load(DATA_FILE)
-    print("\nTrip loaded successfully.")
-    print(f"Destination: {loaded_trip.destination}")
-    print(f"ID: {loaded_trip.id_number}")
-    print(f"Total cost: {loaded_trip.event_total_cost()}")
-    print(f"Alcoholic events: {loaded_trip.alcoholic_events()}")
-
-    print(isinstance(loaded_trip.activities[0], GuideTour))
-    print(isinstance(loaded_trip.activities[1], Pubcrawl))
-
-    print("\n--- Participants ---")
-    demo_participants(historic_walk)
-
-    print("\n--- Participant persistence ---")
-    demo_participant_persistence()
+    # Previous demos: uncomment the ones you want to run again
+    # print("\n--- Trip persistence ---")
+    # demo_trip_persistence()
+    # print("\n--- Participants ---")
+    # demo_participants(historic_walk)
+    # print("\n--- Participant persistence ---")
+    # demo_participant_persistence()
 
 
 if __name__ == "__main__":
     main()
+
