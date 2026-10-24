@@ -29,3 +29,35 @@ class InsufficientPointsError(PointsError):
                 f"Cannot redeem {amount} points: "
                 f"only {balance} points available."
             )
+
+class InvalidTravelPointsBalanceError(Exception):
+    """Raised when a saved travel points balance is negative."""
+
+    def __init__(self, balance: int) -> None:
+        self.balance: int = balance
+        super().__init__(
+            f"Travel points balance cannot be negative, got {balance}."
+        )
+
+class ParticipantError(Exception):
+    """Base exception for trip participant errors."""
+
+
+class DuplicateParticipantError(ParticipantError):
+    """Raised when a user is already a participant in the trip."""
+
+    def __init__(self, user_id: str) -> None:
+        self.user_id: str = user_id
+        super().__init__(
+            f"User {user_id} is already a participant in this trip."
+        )
+
+
+class ParticipantNotFoundError(ParticipantError):
+    """Raised when a user is not a participant in the trip."""
+
+    def __init__(self, user_id: str) -> None:
+        self.user_id: str = user_id
+        super().__init__(
+            f"User {user_id} is not a participant in this trip."
+        )

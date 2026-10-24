@@ -5,11 +5,11 @@ from __future__ import annotations
 
 from datetime import date
 import uuid
-from models.trip import Trip
 
 from exceptions.errors import (
     InvalidPointsAmountError,
     InsufficientPointsError,
+    InvalidTravelPointsBalanceError
 )
 
 
@@ -33,7 +33,6 @@ class User:
         # A new user has no points, no trips and is not a guide yet
         self._travel_points: int = 0
         self.guide_profile: object | None = None
-        self.trips: list[Trip] = []
 
     @property
     def user_id(self) -> str:
@@ -77,6 +76,44 @@ class User:
             )
 
         self._travel_points -= amount
+
+    def to_dict(self) -> dict:
+        """Convert the user into a dictionary suitable for JSON."""
+        return {
+            'user_id': self.user_id,
+            'name': self.name,
+            'surname': self.surname,
+            'birth_date': self.birth_date.isoformat(),
+            'city': self.city,
+            'country': self.country,
+            'languages': list(self.languages),
+            'travel_points': self.travel_points,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> User:
+        """Create a user from a dictionary, restoring their travel points."""
+        balance: int = data['travel_points']
+
+        # Validate the saved balance before creating the user.
+        if balance < 0:
+            raise InvalidTravelPointsBalanceError(balance)
+
+        user: User = cls(
+            name=data['name'],
+            surname=data['surname'],
+            birth_date=date.fromisoformat(data['birth_date']),
+            city=data['city'],
+            country=data['country'],
+            languages=data['languages'],
+            user_id=data['user_id']
+
+        )
+
+        # Restore the saved points; they cannot go through the constructor.
+        user._travel_points = balance
+
+        return user
 
 
 
