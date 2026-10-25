@@ -1,12 +1,15 @@
 """Demo: exercise the Travel&Go domain model and its JSON persistence."""
 import json
 import os
+import shutil
 from datetime import date
 
 from exceptions.errors import (
     DuplicateParticipantError,
     ParticipantNotFoundError,
     InvalidTravelPointsBalanceError,
+    InvalidUserIdError,
+    UserNotFoundError,
 )
 from models.activity import GuideTour, Pubcrawl
 from models.trip import Trip
@@ -113,13 +116,13 @@ def demo_user_persistence() -> None:
     with open(user_file, "r") as f:
         loaded: User = User.from_dict(json.load(f))
     print("Same ID:", loaded.user_id == ana.user_id)
-    print("Points:", loaded.travel_points)  # 100
-    print("birth_date type:", type(loaded.birth_date).__name__)  # date
+    print("Points:", loaded.travel_points)                        # 100
+    print("birth_date type:", type(loaded.birth_date).__name__)   # date
 
     # The lists are independent copies
     data: dict = ana.to_dict()
     data["languages"].append("en")
-    print("Ana's languages:", ana.languages)  # ['es']
+    print("Ana's languages:", ana.languages)                      # ['es']
 
     # A user with zero points can be restored
     eva: User = User("Eva", "Ruiz", date(2000, 6, 1), "Lima", "Peru", ["es"])
@@ -134,14 +137,59 @@ def demo_user_persistence() -> None:
         print("Rejected:", e)
 
 
+def demo_user_storage() -> None:
+    """Demonstrate saving and loading users by ID, one file per user."""
+    demo_dir: str = os.path.join("data", "demo_users")
+    shutil.rmtree(demo_dir, ignore_errors=True)  # start from a clean state
+
+    ana: User = User("Ana", "Lopez", date(2000, 3, 10), "Murcia", "Spain", ["es"])
+    ana.earn_points(100)
+    luis: User = User("Luis", "Gil", date(1990, 1, 3), "Madrid", "Spain", ["es", "en"])
+
+    # The folder does not exist yet: save() must create it
+    print("Folder exists before saving:", os.path.isdir(demo_dir))  # False
+    ana.save(demo_dir)
+    luis.save(demo_dir)
+    print("Folder exists after saving:", os.path.isdir(demo_dir))   # True
+    print("Files saved:", len(os.listdir(demo_dir)))                # 2
+
+    # Load one user by ID
+    loaded: User = User.load(ana.user_id, demo_dir)
+    print("Loaded:", loaded.name, "| same ID:", loaded.user_id == ana.user_id,
+          "| points:", loaded.travel_points)                        # Ana | True | 100
+
+    # An ID with no file must fail, not return an empty user
+    try:
+        User.load("00000000-0000-0000-0000-000000000000", demo_dir)
+    except UserNotFoundError as e:
+        print("Not found:", e)
+
+    # An ID that tries to leave the folder must be rejected
+    try:
+        User.load("../secret", demo_dir)
+    except InvalidUserIdError as e:
+        print("Invalid ID:", e)
+
+    # The same rule applies when saving, and nothing is written
+    sneaky: User = User("Eve", "Ruiz", date(2000, 6, 1), "Lima", "Peru", ["es"],
+                        user_id="../escape")
+    try:
+        sneaky.save(demo_dir)
+    except InvalidUserIdError as e:
+        print("Save rejected:", e)
+    print("Files saved after the rejections:", len(os.listdir(demo_dir)))  # still 2
+
+
 def main() -> None:
     historic_walk: GuideTour = GuideTour("Historic Walk", "Central Square", 10.00, True)
 
     # Active demo
-    print("--- User persistence ---")
-    demo_user_persistence()
+    print("--- User storage ---")
+    demo_user_storage()
 
     # Previous demos: uncomment the ones you want to run again
+    # print("\n--- User persistence ---")
+    # demo_user_persistence()
     # print("\n--- Trip persistence ---")
     # demo_trip_persistence()
     # print("\n--- Participants ---")
@@ -152,4 +200,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
