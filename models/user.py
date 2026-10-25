@@ -1,17 +1,31 @@
-
-
 """User: a traveller who owns trips and accumulates travel points."""
 from __future__ import annotations
 
-from datetime import date
+import json
+import os
+import re
 import uuid
-from models.trip import Trip
+from datetime import date
 
 from exceptions.errors import (
-    InvalidPointsAmountError,
     InsufficientPointsError,
+    InvalidPointsAmountError,
+    InvalidTravelPointsBalanceError,
+    InvalidUserIdError,
+    UserNotFoundError,
 )
 
+USERS_DIR: str = os.path.join("data", "users")
+
+# An ID becomes part of a file name, so only these characters are accepted.
+_VALID_USER_ID = re.compile(r"[A-Za-z0-9_-]+")
+
+
+def _user_path(user_id: str, directory: str) -> str:
+    """Return the file path of a user, rejecting IDs that could escape the directory."""
+    if not _VALID_USER_ID.fullmatch(user_id):
+        raise InvalidUserIdError(user_id)
+    return os.path.join(directory, f"{user_id}.json")
 
 
 class User:
@@ -33,7 +47,6 @@ class User:
         # A new user has no points, no trips and is not a guide yet
         self._travel_points: int = 0
         self.guide_profile: object | None = None
-        self.trips: list[Trip] = []
 
     @property
     def user_id(self) -> str:
@@ -77,6 +90,66 @@ class User:
             )
 
         self._travel_points -= amount
+
+    def to_dict(self) -> dict:
+        """Convert the user into a dictionary suitable for JSON."""
+        return {
+            'user_id': self.user_id,
+            'name': self.name,
+            'surname': self.surname,
+            'birth_date': self.birth_date.isoformat(),
+            'city': self.city,
+            'country': self.country,
+            'languages': list(self.languages),
+            'travel_points': self.travel_points,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> User:
+        """Create a user from a dictionary, restoring their travel points."""
+        balance: int = data['travel_points']
+
+        # Validate the saved balance before creating the user.
+        if balance < 0:
+            raise InvalidTravelPointsBalanceError(balance)
+
+        user: User = cls(
+            name=data['name'],
+            surname=data['surname'],
+            birth_date=date.fromisoformat(data['birth_date']),
+            city=data['city'],
+            country=data['country'],
+            languages=data['languages'],
+            user_id=data['user_id']
+
+        )
+
+        # Restore the saved points; they cannot go through the constructor.
+        user._travel_points = balance
+
+        return user
+
+    def save(self, directory: str = USERS_DIR) -> None:
+        """Save the user to '<directory>/<user_id>.json', creating the directory if needed."""
+        path: str = _user_path(self.user_id, directory)  # validate before touching the disk
+        os.makedirs(directory, exist_ok=True)
+        with open(path, "w") as f:
+            json.dump(self.to_dict(), f, indent=4)
+
+    @classmethod
+    def load(cls, user_id: str, directory: str = USERS_DIR) -> User:
+        """Load the user with the given ID from the directory."""
+        path: str = _user_path(user_id, directory)
+        try:
+            with open(path, "r") as f:
+                data: dict = json.load(f)
+        except FileNotFoundError:
+            # Hide the low-level error: the caller only needs to know the user does not exist.
+            raise UserNotFoundError(user_id) from None
+
+        return cls.from_dict(data)
+
+
 
 
 
