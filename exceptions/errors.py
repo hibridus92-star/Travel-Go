@@ -61,3 +61,25 @@ class ParticipantNotFoundError(ParticipantError):
         super().__init__(
             f"User {user_id} is not a participant in this trip."
         )
+
+
+class UserStorageError(Exception):
+    """Base exception for errors when saving or loading users."""
+
+
+class UserNotFoundError(UserStorageError):
+    """Raised when there is no saved user with the requested ID."""
+
+    def __init__(self, user_id: str) -> None:
+        self.user_id: str = user_id
+        super().__init__(f"No saved user with ID {user_id!r}.")
+
+
+class InvalidUserIdError(UserStorageError):
+    """Raised when a user ID cannot be safely used as a file name."""
+
+    def __init__(self, user_id: str) -> None:
+        self.user_id: str = user_id
+        super().__init__(
+            f"Invalid user ID {user_id!r}: only letters, digits, '-' and '_' are allowed.")
+
