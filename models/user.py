@@ -1,17 +1,31 @@
-
-
 """User: a traveller who owns trips and accumulates travel points."""
 from __future__ import annotations
 
-from datetime import date
+import json
+import os
+import re
 import uuid
+from datetime import date
 
 from exceptions.errors import (
-    InvalidPointsAmountError,
     InsufficientPointsError,
-    InvalidTravelPointsBalanceError
+    InvalidPointsAmountError,
+    InvalidTravelPointsBalanceError,
+    InvalidUserIdError,
+    UserNotFoundError,
 )
 
+USERS_DIR: str = os.path.join("data", "users")
+
+# An ID becomes part of a file name, so only these characters are accepted.
+_VALID_USER_ID = re.compile(r"[A-Za-z0-9_-]+")
+
+
+def _user_path(user_id: str, directory: str) -> str:
+    """Return the file path of a user, rejecting IDs that could escape the directory."""
+    if not _VALID_USER_ID.fullmatch(user_id):
+        raise InvalidUserIdError(user_id)
+    return os.path.join(directory, f"{user_id}.json")
 
 
 class User:
@@ -114,6 +128,28 @@ class User:
         user._travel_points = balance
 
         return user
+
+    def save(self, directory: str = USERS_DIR) -> None:
+        """Save the user to '<directory>/<user_id>.json', creating the directory if needed."""
+        path: str = _user_path(self.user_id, directory)  # validate before touching the disk
+        os.makedirs(directory, exist_ok=True)
+        with open(path, "w") as f:
+            json.dump(self.to_dict(), f, indent=4)
+
+    @classmethod
+    def load(cls, user_id: str, directory: str = USERS_DIR) -> User:
+        """Load the user with the given ID from the directory."""
+        path: str = _user_path(user_id, directory)
+        try:
+            with open(path, "r") as f:
+                data: dict = json.load(f)
+        except FileNotFoundError:
+            # Hide the low-level error: the caller only needs to know the user does not exist.
+            raise UserNotFoundError(user_id) from None
+
+        return cls.from_dict(data)
+
+
 
 
 
