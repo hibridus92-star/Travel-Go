@@ -55,6 +55,17 @@ The current codebase models trips as a collection of activities organised in a c
 
 - [Class diagram](docs/class_diagram.md): current UML diagram of the domain model
 
+## Running the tests
+
+The project has no runtime dependencies. To run the automated tests, install the development dependencies and run `pytest` from the repository root:
+
+```
+pip install -r requirements-dev.txt
+pytest
+```
+
+The tests live in the `tests/` folder. Any files they write go to temporary folders, so the `data/` folder is never touched.
+
 ## Tech stack
 
 - Python 3
@@ -64,6 +75,8 @@ The current codebase models trips as a collection of activities organised in a c
 ## Author
 
 Jose Quintero. Built as a learning project and as a TFG.
+
+* pytest (development only)
 
 
 

@@ -9,3 +9,6 @@ venv/
 
 # Saved trip data (keep the folder, not the contents)
 data/**/*.json
+
+# pytest cache
+.pytest_cache/
