@@ -16,7 +16,7 @@ This project is also being developed as my final degree project (TFG) for the Mu
 
 Travel&Go organises the **activities** of a trip: guided tours, pub crawls and similar plans. The user chooses the destination and how long to stay there, and the app helps plan what to do during that time, keeping track of the total cost.
 
-It does **not** handle accommodation, transport or any other kind of booking.
+It does **not** handle accommodation or transport.
 
 ## The problem
 
