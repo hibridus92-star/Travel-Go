@@ -77,12 +77,12 @@ The tests live in the `tests/` folder. Any files they write go to temporary fold
 - Python 3
 - PyCharm
 - Git and GitHub
+- pytest (development only
 
 ## Author
 
 Jose Quintero. Built as a learning project and as a TFG.
 
-* pytest (development only)
 
 
 
