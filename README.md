@@ -33,9 +33,18 @@ Existing loyalty schemes, such as Booking.com's Genius programme, reward users i
 
 ## What makes it different
 
-- **Transferable rewards.** Discount vouchers and points earned by one user can be passed on to other users, turning loyalty into a social experience and encouraging organic growth.
+- **Transferable rewards.** Points earned by a user can be turned into a discount voucher and passed on to a new user. The points are deducted from the user who gives the voucher away, which turns loyalty into a social experience and encourages organic growth.
 - **Proactive, personalised recommendations.** The platform suggests activity packages and extras based on each user's history and preferences.
-- **A path towards working with the platform.** Long-term users who meet certain requirements can become certified local guides for their own city.
+- **A path towards working with the platform.** Users who have bought enough trips and spent enough on them can become certified local guides, called hosts, for their own city. Hosts get extra discounts and other benefits.
+
+## How the loyalty system works
+
+1. **Earn points.** Users earn points when they buy a trip (that is, its set of activities) and on their birthday. Hosts also earn points for taking part in activities.
+2. **Spend points.** Points are exchanged for discounts when buying a trip.
+3. **Share.** A user can turn part of their points into a voucher and give it to a new user to invite them to the platform. The voucher can be used only once and expires after a short time. Points that go unused in an expired voucher are lost.
+4. **Become a host.** A user who has bought a minimum number of trips and spent a minimum amount on them can become a host for their own city, as long as English is among the languages they speak. Hosts get extra discounts and other benefits.
+
+The exact amounts (points per action, discount rates and host requirements) are still being defined and are not fixed in this document.
 
 ## Current features
 
