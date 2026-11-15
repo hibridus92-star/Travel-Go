@@ -35,7 +35,7 @@ Requirement IDs are grouped by area (`TRP-03`, `VCH-02`...), so adding a require
 | ACT-01 | An activity has a name, a city, a venue, a price per person and a date and time. | Partly done (name, venue, price) |
 | ACT-02 | There are two kinds of activity, guided tour and pub crawl, and a new kind can be added without changing the existing ones. | Done |
 | ACT-03 | An activity is saved with its type and restored as an object of the right class. | Done |
-| ACT-04 | A price is a non-negative decimal with at most two decimals. A name cannot be empty or only spaces. | Planned |
+| ACT-04 | A price is a non-negative decimal with at most two decimals. A name cannot be empty or only spaces. Prices are saved as text (for example `"25.90"`), and files that saved them as numbers still load. | Done |
 | ACT-05 | Activities come from a catalogue maintained by the platform. Users choose activities, they do not create them. | Planned |
 | ACT-06 | An activity exists on its own and can belong to several trips. | Done |
 
@@ -178,7 +178,7 @@ Every number below lives in one configuration module, so changing a rule never m
 
 - The payment is simulated, and there are no passwords, cancellations or refunds.
 - Participants must be registered users, so children or older people without an account cannot be added as participants.
-- Prices are `float` and trip IDs are integers assigned by hand until the decimal prices and repository steps are done.
+- Trip IDs are integers assigned by hand until the repository step is done.
 - `Trip.load` returns an empty trip when the file does not exist, which can hide errors (see TRP-07).
 - `Trip.activities` is a public list that is not copied.
 - The `tips_included` field of a guided tour will be removed when tips are implemented, because a tip is a separate payment (see TIP-03).

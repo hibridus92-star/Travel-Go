@@ -63,7 +63,7 @@ The current codebase models trips, activities and users:
 - [x] JSON persistence
 - [x] Reorganise the code into modules and packages
 - [x] Automated tests with pytest
-- [ ] Decimal prices and input validation
+- [x] Decimal prices and input validation
 - [ ] Trip dates and lifecycle (draft and purchased)
 - [ ] Activity catalogue and trip repositories
 - [ ] Trip purchase and points
