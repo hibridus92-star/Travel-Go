@@ -2,8 +2,7 @@
 
 > A travel activity planner with a transferable loyalty system and personalised activity recommendations.
 
-**Status:** early development. The repository currently contains the design documentation; the codebase will be added progressively as the project is reorganised into modules.
-
+**Status:** early development. The core domain model (activities, trips and users with a travel points balance) is implemented and covered by automated tests. The loyalty features are being added step by step.
 ---
 
 ## Overview
@@ -48,22 +47,28 @@ The exact amounts (points per action, discount rates and host requirements) are 
 
 ## Current features
 
-The current codebase models trips as a collection of activities organised in a class hierarchy:
+The current codebase models trips, activities and users:
 
 - Activity hierarchy (`Activity`, `GuideTour`, `Pubcrawl`) with polymorphic behaviour
 - Trip management with total cost calculation
-- JSON persistence: trips and their activities can be saved to disk and loaded back, with each activity restored to its correct class
+- Trip participants, stored as user IDs, with duplicates and unknown participants rejected
+- Users with a unique ID, an age calculated from their birth date and a travel points balance that can only change by earning or redeeming points
+- JSON persistence: trips and their activities, with each activity restored to its correct class, and one file per user
 - Custom exceptions for invalid data
+- Automated tests with `pytest`
 
 ## Roadmap
 
-- [x] Core domain model (activities and trips)
+- [x] Core domain model (activities, trips and users)
 - [x] JSON persistence
-- [ ] Reorganise the code into modules and packages
+- [x] Reorganise the code into modules and packages
+- [x] Automated tests with pytest
 - [ ] Discount and points system
 - [ ] Voucher transfer between users
+- [ ] Host profiles
 - [ ] Loyalty dashboard
-- [ ] Trip recommendations
+- [ ] Activity recommendations
+- [ ] Console interface
 - [ ] Graphical interface (to be evaluated)
 
 ## Documentation
