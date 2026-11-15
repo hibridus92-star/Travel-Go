@@ -76,6 +76,7 @@ The current codebase models trips, activities and users:
 ## Documentation
 
 - [Class diagram](docs/class_diagram.md): current UML diagram of the domain model
+- [Requirements](docs/requirements.md): functional and non-functional requirements, configurable values and decision log
 
 ## Running the tests
 
