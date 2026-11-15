@@ -1,43 +1,55 @@
 """Custom exceptions for Travel&Go."""
 
 
-class InvalidTypeError(Exception):
+class ActivityError(Exception):
+    """Base exception for invalid activity data."""
+
+
+class InvalidActivityNameError(ActivityError):
+    """Raised when an activity name is not text, is empty or has only spaces."""
+
+    def __init__(self, name: object) -> None:
+        self.name: object = name
+        super().__init__(f"Activity name must be a non-empty text, got {name!r}.")
+
+
+class InvalidPriceError(ActivityError):
+    """Raised when a price is not a non-negative amount with at most two decimals."""
+
+    def __init__(self, price: object, reason: str) -> None:
+        self.price: object = price
+        self.reason: str = reason
+        super().__init__(f"Invalid price {price!r}: {reason}.")
+
+
+class InvalidTypeError(ActivityError):
     """Raised when a saved activity has an unknown 'type' field."""
 
     def __init__(self, activity_type: str, message: str = "Unknown activity type") -> None:
         self.type: str = activity_type
         super().__init__(f"{message}: {activity_type}")
 
+
 class PointsError(Exception):
     """Base exception for travel points errors."""
+
 
 class InvalidPointsAmountError(PointsError):
     """Raised when the points amount is zero or negative."""
 
     def __init__(self, amount: int) -> None:
         self.amount: int = amount
-        super().__init__(
-            f"Points amount must be positive, got {amount}."
-        )
+        super().__init__(f"Points amount must be positive, got {amount}.")
+
 
 class InsufficientPointsError(PointsError):
-        """Raised when the requested points exceed the available balance."""
-        def __init__(self, amount: int, balance: int) -> None:
-            self.amount: int = amount
-            self.balance: int = balance
-            super().__init__(
-                f"Cannot redeem {amount} points: "
-                f"only {balance} points available."
-            )
+    """Raised when the requested points exceed the available balance."""
 
-class InvalidTravelPointsBalanceError(Exception):
-    """Raised when a saved travel points balance is negative."""
-
-    def __init__(self, balance: int) -> None:
+    def __init__(self, amount: int, balance: int) -> None:
+        self.amount: int = amount
         self.balance: int = balance
-        super().__init__(
-            f"Travel points balance cannot be negative, got {balance}."
-        )
+        super().__init__(f"Cannot redeem {amount} points: only {balance} points available.")
+
 
 class ParticipantError(Exception):
     """Base exception for trip participant errors."""
@@ -48,9 +60,7 @@ class DuplicateParticipantError(ParticipantError):
 
     def __init__(self, user_id: str) -> None:
         self.user_id: str = user_id
-        super().__init__(
-            f"User {user_id} is already a participant in this trip."
-        )
+        super().__init__(f"User {user_id} is already a participant in this trip.")
 
 
 class ParticipantNotFoundError(ParticipantError):
@@ -58,8 +68,16 @@ class ParticipantNotFoundError(ParticipantError):
 
     def __init__(self, user_id: str) -> None:
         self.user_id: str = user_id
+        super().__init__(f"User {user_id} is not a participant in this trip.")
+
+
+class InvalidTravelPointsBalanceError(Exception):
+    """Raised when a saved travel points balance is negative."""
+
+    def __init__(self, balance: int) -> None:
+        self.balance: int = balance
         super().__init__(
-            f"User {user_id} is not a participant in this trip."
+            f"Travel points balance cannot be negative, got {balance}."
         )
 
 
@@ -81,5 +99,5 @@ class InvalidUserIdError(UserStorageError):
     def __init__(self, user_id: str) -> None:
         self.user_id: str = user_id
         super().__init__(
-            f"Invalid user ID {user_id!r}: only letters, digits, '-' and '_' are allowed.")
-
+            f"Invalid user ID {user_id!r}: only letters, digits, '-' and '_' are allowed."
+        )

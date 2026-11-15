@@ -1,17 +1,44 @@
 """Activity hierarchy: Activity, GuideTour and Pubcrawl."""
 from __future__ import annotations
 
-from exceptions.errors import InvalidTypeError
+from decimal import Decimal
+
+from exceptions.errors import InvalidActivityNameError, InvalidTypeError
+from models.money import parse_price, price_from_json
+
+
+def _validate_name(name: object) -> str:
+    """Return the name without surrounding spaces, or raise if it is not usable."""
+    if not isinstance(name, str) or not name.strip():
+        raise InvalidActivityNameError(name)
+    return name.strip()
 
 
 class Activity:
     events_count: int = 0
 
-    def __init__(self, name: str, location: str, price: float) -> None:
-        self.name: str = name
+    def __init__(self, name: str, location: str, price: Decimal | int | str) -> None:
+        self._name: str = _validate_name(name)
         self.location: str = location
-        self.price: float = price
+        self._price: Decimal = parse_price(price)
+        # Only reached when name and price are valid, so a rejected activity is not counted.
         Activity.events_count += 1
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        self._name = _validate_name(value)
+
+    @property
+    def price(self) -> Decimal:
+        return self._price
+
+    @price.setter
+    def price(self, value: Decimal | int | str) -> None:
+        self._price = parse_price(value)
 
     def describe(self) -> str:
         return f'\nEvent: {self.name}\nLocation: {self.location}\nPrice: {self.price}'
@@ -20,11 +47,14 @@ class Activity:
         return self.price < other.price
 
     def to_dict(self) -> dict:
-        """Convert the activity to a dictionary. Subclasses extend it with their own fields."""
+        """Convert the activity to a dictionary. Subclasses extend it with their own fields.
+
+        The price is saved as text because JSON has no exact decimal type.
+        """
         return {
             'name': self.name,
             'location': self.location,
-            'price': self.price,
+            'price': str(self.price),
         }
 
     @staticmethod
@@ -39,7 +69,7 @@ class Activity:
 
 
 class GuideTour(Activity):
-    def __init__(self, name: str, location: str, price: float, tips_included: bool) -> None:
+    def __init__(self, name: str, location: str, price: Decimal | int | str, tips_included: bool) -> None:
         super().__init__(name, location, price)
         self.tips_included: bool = tips_included
 
@@ -54,11 +84,11 @@ class GuideTour(Activity):
 
     @classmethod
     def to_activity(cls, data: dict) -> GuideTour:
-        return cls(data['name'], data['location'], data['price'], data['tips_included'])
+        return cls(data['name'], data['location'], price_from_json(data['price']), data['tips_included'])
 
 
 class Pubcrawl(Activity):
-    def __init__(self, name: str, location: str, price: float, drinks_included: int) -> None:
+    def __init__(self, name: str, location: str, price: Decimal | int | str, drinks_included: int) -> None:
         super().__init__(name, location, price)
         self.drinks_included: int = drinks_included
 
@@ -73,4 +103,4 @@ class Pubcrawl(Activity):
 
     @classmethod
     def to_activity(cls, data: dict) -> Pubcrawl:
-        return cls(data['name'], data['location'], data['price'], data['drinks_included'])
+        return cls(data['name'], data['location'], price_from_json(data['price']), data['drinks_included'])

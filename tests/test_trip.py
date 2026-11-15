@@ -1,5 +1,6 @@
 """Tests for Trip: cost, alcohol count, participants and JSON persistence."""
 import json
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -15,24 +16,32 @@ from models.trip import Trip
 
 @pytest.fixture
 def walk() -> GuideTour:
-    return GuideTour("Historic Walk", "Central Square", 10.00, True)
+    return GuideTour("Historic Walk", "Central Square", Decimal("10.00"), True)
 
 
 @pytest.fixture
 def pub_night() -> Pubcrawl:
-    return Pubcrawl("Drinkers Night", "The Dolphin Shire", 25.90, 2)
+    return Pubcrawl("Drinkers Night", "The Dolphin Shire", Decimal("25.90"), 2)
 
 
 # --- cost and description -------------------------------------------------
 
 def test_total_cost_is_the_sum_of_the_activity_prices(walk: GuideTour, pub_night: Pubcrawl) -> None:
     trip: Trip = Trip(1, "La Valleta", [walk, pub_night])
-    # Prices are floats today, so compare with a tolerance (this changes in 'chore/decimal-prices').
-    assert trip.event_total_cost() == pytest.approx(35.90)
+    assert trip.event_total_cost() == Decimal("35.90")
+
+
+def test_total_cost_is_a_decimal_and_has_no_rounding_errors() -> None:
+    cheap: list[GuideTour] = [GuideTour("A", "Somewhere", "0.10", False), GuideTour("B", "Somewhere", "0.20", False)]
+    total: Decimal = Trip(1, "Rome", cheap).event_total_cost()
+    assert isinstance(total, Decimal)
+    assert total == Decimal("0.30")  # with floats, 0.1 + 0.2 is 0.30000000000000004
 
 
 def test_total_cost_of_a_trip_without_activities_is_zero() -> None:
-    assert Trip(1, "Rome", []).event_total_cost() == 0
+    total: Decimal = Trip(1, "Rome", []).event_total_cost()
+    assert isinstance(total, Decimal)
+    assert total == Decimal("0.00")
 
 
 def test_alcoholic_events_counts_only_pubcrawls(walk: GuideTour, pub_night: Pubcrawl) -> None:
@@ -140,6 +149,35 @@ def test_loading_rebuilds_the_right_activity_subclasses(tmp_path: Path, walk: Gu
 
     assert isinstance(loaded.activities[0], GuideTour)
     assert isinstance(loaded.activities[1], Pubcrawl)
+
+
+def test_prices_are_saved_as_text_and_the_total_survives_the_round_trip(
+    tmp_path: Path, walk: GuideTour, pub_night: Pubcrawl
+) -> None:
+    path: Path = tmp_path / "trip.json"
+    Trip(1, "La Valleta", [walk, pub_night]).save(str(path))
+
+    saved: dict = json.loads(path.read_text())
+    assert saved["activities"][0]["price"] == "10.00"
+    assert Trip.load(str(path)).event_total_cost() == Decimal("35.90")
+
+
+def test_old_files_with_float_prices_still_load(tmp_path: Path) -> None:
+    path: Path = tmp_path / "old_prices.json"
+    path.write_text(json.dumps({
+        "id_number": 2334,
+        "destination": "La Valleta",
+        "activities": [
+            {"type": "GuideTour", "name": "Historic Walk", "location": "Central Square",
+             "price": 10.0, "tips_included": True},
+            {"type": "Pubcrawl", "name": "Drinkers Night", "location": "The Dolphin Shire",
+             "price": 25.9, "drinks_included": 2},
+        ],
+    }))
+
+    loaded: Trip = Trip.load(str(path))
+
+    assert loaded.event_total_cost() == Decimal("35.90")
 
 
 def test_validation_still_works_after_loading(tmp_path: Path) -> None:
