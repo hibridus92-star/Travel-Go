@@ -63,12 +63,14 @@ The current codebase models trips, activities and users:
 - [x] JSON persistence
 - [x] Reorganise the code into modules and packages
 - [x] Automated tests with pytest
-- [ ] Discount and points system
-- [ ] Voucher transfer between users
-- [ ] Host profiles
-- [ ] Loyalty dashboard
+- [ ] Decimal prices and input validation
+- [ ] Trip dates and lifecycle (draft and purchased)
+- [ ] Activity catalogue and trip repositories
+- [ ] Trip purchase and points
+- [ ] Console interface with loyalty dashboard (first usable version)
+- [ ] Discounts and vouchers for new users
+- [ ] Host profiles and tips
 - [ ] Activity recommendations
-- [ ] Console interface
 - [ ] Graphical interface (to be evaluated)
 
 ## Documentation
