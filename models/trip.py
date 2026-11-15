@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from decimal import Decimal
 
 from models.activity import Activity, Pubcrawl
 from exceptions.errors import (
@@ -11,7 +12,7 @@ from exceptions.errors import (
 
 
 class Trip:
-    def __init__(self, id_number: int, destination: str, activities: list[Activity],participant_ids: list[str] | None = None):
+    def __init__(self, id_number: int, destination: str, activities: list[Activity], participant_ids: list[str] | None = None) -> None:
         self.id_number: int = id_number
         self.destination: str = destination
         self.activities: list[Activity] = activities
@@ -38,8 +39,8 @@ class Trip:
 
         self._participant_ids.remove(user_id)
 
-    def event_total_cost(self) -> float:
-        cost: float = 0.0
+    def event_total_cost(self) -> Decimal:
+        cost: Decimal = Decimal("0.00")
         for activity in self.activities:
             cost += activity.price
         return cost

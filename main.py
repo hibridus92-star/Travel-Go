@@ -10,10 +10,13 @@ import shutil
 import sys
 from collections.abc import Callable
 from datetime import date
+from decimal import Decimal
 
 from exceptions.errors import (
     DuplicateParticipantError,
     InsufficientPointsError,
+    InvalidActivityNameError,
+    InvalidPriceError,
     InvalidTypeError,
     InvalidPointsAmountError,
     InvalidTravelPointsBalanceError,
@@ -33,8 +36,8 @@ def demo_activities() -> None:
     """Activities: types, description, comparison by price and creation counter."""
     before: int = Activity.events_count
 
-    historic_walk: GuideTour = GuideTour("Historic Walk", "Central Square", 10.00, True)
-    drinkers_night: Pubcrawl = Pubcrawl("Drinkers Night", "The Dolphin Shire", 25.90, 2)
+    historic_walk: GuideTour = GuideTour("Historic Walk", "Central Square", Decimal("10.00"), True)
+    drinkers_night: Pubcrawl = Pubcrawl("Drinkers Night", "The Dolphin Shire", Decimal("25.90"), 2)
 
     print(historic_walk.describe())
     print(drinkers_night.describe())
@@ -49,10 +52,44 @@ def demo_activities() -> None:
         print("Rejected:", e)
 
 
+def demo_prices() -> None:
+    """Prices: why money is not a float, what is rejected and how old files still load."""
+    # The problem with float
+    print("float:   0.1 + 0.2 =", 0.1 + 0.2)  # 0.30000000000000004
+    print("Decimal: 0.10 + 0.20 =", Decimal("0.10") + Decimal("0.20"))  # 0.30
+
+    # A price is stored with exactly two decimals and saved as text
+    walk: GuideTour = GuideTour("Historic Walk", "Central Square", "10", True)
+    print("Price stored as:", walk.price)  # 10.00
+    print("Price saved as:", repr(walk.to_dict()["price"]))  # '10.00'
+
+    # Invalid prices are rejected, and the activity is not created
+    before: int = Activity.events_count
+    for bad_price in (-5, "12.345", 9.99, "abc", True):
+        try:
+            GuideTour("Test", "Somewhere", bad_price, False)
+        except InvalidPriceError as e:
+            print("Rejected price:", e)
+
+    # Invalid names are rejected too
+    try:
+        Pubcrawl("   ", "Somewhere", "5.00", 1)
+    except InvalidActivityNameError as e:
+        print("Rejected name:", e)
+    print("Activities created by mistake:", Activity.events_count - before)  # 0
+
+    # A file saved before prices became decimals still loads
+    old_data: dict = {
+        "type": "GuideTour", "name": "Old Walk", "location": "Square",
+        "price": 25.9, "tips_included": True,
+    }
+    print("Old float price loaded as:", Activity.activity_from_dict(old_data).price)  # 25.90
+
+
 def demo_trip_persistence() -> None:
     """Trips: total cost, alcohol-related count and a JSON round trip."""
-    historic_walk: GuideTour = GuideTour("Historic Walk", "Central Square", 10.00, True)
-    drinkers_night: Pubcrawl = Pubcrawl("Drinkers Night", "The Dolphin Shire", 25.90, 2)
+    historic_walk: GuideTour = GuideTour("Historic Walk", "Central Square", Decimal("10.00"), True)
+    drinkers_night: Pubcrawl = Pubcrawl("Drinkers Night", "The Dolphin Shire", Decimal("25.90"), 2)
     malta: Trip = Trip(2334, "La Valleta", [historic_walk, drinkers_night])
 
     malta.save(DATA_FILE)
@@ -72,7 +109,7 @@ def demo_trip_persistence() -> None:
 
 def demo_participants() -> None:
     """Trips: how a trip manages its participants."""
-    activity: GuideTour = GuideTour("Historic Walk", "Central Square", 10.00, True)
+    activity: GuideTour = GuideTour("Historic Walk", "Central Square", Decimal("10.00"), True)
 
     # 1. A trip without participants starts empty
     trip01: Trip = Trip(1, "Rome", [activity])
@@ -248,6 +285,7 @@ def demo_user_storage() -> None:
 
 DEMOS: dict[str, Callable[[], None]] = {
     "activities": demo_activities,
+    "prices": demo_prices,
     "trips": demo_trip_persistence,
     "participants": demo_participants,
     "participant-persistence": demo_participant_persistence,
