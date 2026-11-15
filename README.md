@@ -38,7 +38,7 @@ Existing loyalty schemes, such as Booking.com's Genius programme, reward users i
 
 ## How the loyalty system works
 
-1. **Earn points.** Users earn points when they buy a trip (that is, its set of activities) and on their birthday. Hosts also earn points for taking part in activities.
+1. **Earn points.** Users earn points when they buy a trip (that is, its set of activities) and on their birthday. Hosts also earn points from the tips given for the activities they host.
 2. **Spend points.** Points are exchanged for discounts when buying a trip.
 3. **Share.** A user can turn part of their points into a voucher and give it to a new user to invite them to the platform. The voucher can be used only once and expires after a short time. Points that go unused in an expired voucher are lost.
 4. **Become a host.** A user who has bought a minimum number of trips and spent a minimum amount on them can become a host for their own city, as long as English is among the languages they speak. Hosts get extra discounts and other benefits.
