@@ -32,7 +32,7 @@ Requirement IDs are grouped by area (`TRP-03`, `VCH-02`...), so adding a require
 
 | ID | Requirement | Status |
 |---|---|---|
-| ACT-01 | An activity has a name, a city, a venue, a price per person and a date and time. | Partly done (name, venue, price) |
+| ACT-01 | An activity has a name, a city, a venue, a price per person and a date and time. | Partly done (name, venue, price, date and time) |
 | ACT-02 | There are two kinds of activity, guided tour and pub crawl, and a new kind can be added without changing the existing ones. | Done |
 | ACT-03 | An activity is saved with its type and restored as an object of the right class. | Done |
 | ACT-04 | A price is a non-negative decimal with at most two decimals. A name cannot be empty or only spaces. Prices are saved as text (for example `"25.90"`), and files that saved them as numbers still load. | Done |
@@ -43,12 +43,12 @@ Requirement IDs are grouped by area (`TRP-03`, `VCH-02`...), so adding a require
 
 | ID | Requirement | Status |
 |---|---|---|
-| TRP-01 | A trip has a destination, a start date, an end date and a unique ID (a UUID stored as text). | Partly done (destination, integer ID) |
-| TRP-02 | The date and time of every activity must fall inside the trip dates, limits included. It is checked when the activity is added. | Planned |
+| TRP-01 | A trip has a destination, a start date, an end date and a unique ID (a UUID stored as text). | Partly done (destination, dates, integer ID) |
+| TRP-02 | The date and time of every activity must fall inside the trip dates, limits included. It is checked when the activity is added. | Done |
 | TRP-03 | The owner is added automatically as a participant. All participants have the same rights over the trip. | Planned |
 | TRP-04 | Participants are registered users stored by ID. A duplicate participant or the removal of an unknown one is rejected. | Done |
-| TRP-05 | A trip is a **draft** (activities and participants can change) or **purchased** (locked, nothing can change). | Planned |
-| TRP-06 | The price per person is the sum of the prices of the activities. The total price is that amount multiplied by the number of participants. | Partly done (sum of prices) |
+| TRP-05 | A trip is a **draft** (activities and participants can change) or **purchased** (locked, nothing can change). | Done |
+| TRP-06 | The price per person is the sum of the prices of the activities. The total price is that amount multiplied by the number of participants. | Done |
 | TRP-07 | Each trip is saved in `data/trips/<trip_id>.json` and can be loaded by its ID. Loading a missing trip is an error. Old files without the new fields still load. | Planned |
 | TRP-08 | Showing a trip lists the names of its participants, not their IDs. | Planned |
 | TRP-09 | A trip can describe itself, calculate its cost and count its alcoholic activities. | Done |
@@ -179,8 +179,7 @@ Every number below lives in one configuration module, so changing a rule never m
 - The payment is simulated, and there are no passwords, cancellations or refunds.
 - Participants must be registered users, so children or older people without an account cannot be added as participants.
 - Trip IDs are integers assigned by hand until the repository step is done.
-- `Trip.load` returns an empty trip when the file does not exist, which can hide errors (see TRP-07).
-- `Trip.activities` is a public list that is not copied.
+- Trip files saved before trips had dates cannot be loaded: they are rejected with an error that names the missing field.
 - The `tips_included` field of a guided tour will be removed when tips are implemented, because a tip is a separate payment (see TIP-03).
 
 ## 7. Decision log
@@ -199,3 +198,6 @@ Every number below lives in one configuration module, so changing a rule never m
 | D10 | Simulated payment and profiles without passwords. | The repository is public and the first usable version has to arrive soon. |
 | D11 | Recommendations use simple rules. | There is not enough data for anything more complex. |
 | D12 | The loyalty dashboard is the profile screen of the console. | One screen less to build. |
+| D13 | The start of an activity cannot change once it is created, and it is the local time of the destination, without a time zone. | A trip can trust that its activities stay inside its dates. |
+| D14 | A trip price is split into `price_per_person` and `total_price`, which replace `event_total_cost`. | The old name was misleading once prices became per person. |
+| D15 | Trip files saved before trips had dates are rejected, and loading a missing trip raises an error. | Dates are mandatory and nothing sensible can be invented for old files, which only held demo data. |
