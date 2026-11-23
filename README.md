@@ -50,7 +50,7 @@ The exact amounts (points per action, discount rates and host requirements) are 
 The current codebase models trips, activities and users:
 
 - Activity hierarchy (`Activity`, `GuideTour`, `Pubcrawl`) with polymorphic behaviour
-- Trip management with total cost calculation
+- Trip management with dates, a draft and purchased lifecycle, and the price per person and in total
 - Trip participants, stored as user IDs, with duplicates and unknown participants rejected
 - Users with a unique ID, an age calculated from their birth date and a travel points balance that can only change by earning or redeeming points
 - JSON persistence: trips and their activities, with each activity restored to its correct class, and one file per user
@@ -64,7 +64,7 @@ The current codebase models trips, activities and users:
 - [x] Reorganise the code into modules and packages
 - [x] Automated tests with pytest
 - [x] Decimal prices and input validation
-- [ ] Trip dates and lifecycle (draft and purchased)
+- [x] Trip dates and lifecycle (draft and purchased)
 - [ ] Activity catalogue and trip repositories
 - [ ] Trip purchase and points
 - [ ] Console interface with loyalty dashboard (first usable version)

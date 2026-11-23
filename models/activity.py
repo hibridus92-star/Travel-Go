@@ -1,9 +1,10 @@
 """Activity hierarchy: Activity, GuideTour and Pubcrawl."""
 from __future__ import annotations
 
+from datetime import datetime
 from decimal import Decimal
 
-from exceptions.errors import InvalidActivityNameError, InvalidTypeError
+from exceptions.errors import InvalidActivityNameError, InvalidStartTimeError, InvalidTypeError
 from models.money import parse_price, price_from_json
 
 
@@ -14,14 +15,35 @@ def _validate_name(name: object) -> str:
     return name.strip()
 
 
+def _validate_start(starts_at: object) -> datetime:
+    """Return the start if it is a datetime without time zone, or raise."""
+    # A plain date is not accepted: datetime is a subclass of date, but not the other way round.
+    if not isinstance(starts_at, datetime):
+        raise InvalidStartTimeError(starts_at, "it must be a datetime (a date and a time)")
+    if starts_at.tzinfo is not None:
+        raise InvalidStartTimeError(starts_at, "it must not have a time zone, use the local time of the destination")
+    return starts_at
+
+
+def _start_from_json(value: object) -> datetime:
+    """Read a start saved as text in ISO format (for example '2027-03-14T10:00:00')."""
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value)
+        except ValueError:
+            raise InvalidStartTimeError(value, "it is not a valid ISO date and time") from None
+    return _validate_start(value)
+
+
 class Activity:
     events_count: int = 0
 
-    def __init__(self, name: str, location: str, price: Decimal | int | str) -> None:
+    def __init__(self, name: str, location: str, price: Decimal | int | str, starts_at: datetime) -> None:
         self._name: str = _validate_name(name)
         self.location: str = location
         self._price: Decimal = parse_price(price)
-        # Only reached when name and price are valid, so a rejected activity is not counted.
+        self._starts_at: datetime = _validate_start(starts_at)
+        # Only reached when name, price and start are valid, so a rejected activity is not counted.
         Activity.events_count += 1
 
     @property
@@ -40,8 +62,16 @@ class Activity:
     def price(self, value: Decimal | int | str) -> None:
         self._price = parse_price(value)
 
+    @property
+    def starts_at(self) -> datetime:
+        """The start of the activity. It has no setter: an activity that is already part of a trip cannot move."""
+        return self._starts_at
+
     def describe(self) -> str:
-        return f'\nEvent: {self.name}\nLocation: {self.location}\nPrice: {self.price}'
+        return (
+            f'\nEvent: {self.name}\nLocation: {self.location}'
+            f'\nStarts: {self.starts_at:%Y-%m-%d %H:%M}\nPrice: {self.price}'
+        )
 
     def __lt__(self, other: Activity) -> bool:
         return self.price < other.price
@@ -55,6 +85,7 @@ class Activity:
             'name': self.name,
             'location': self.location,
             'price': str(self.price),
+            'starts_at': self.starts_at.isoformat(),
         }
 
     @staticmethod
@@ -69,8 +100,8 @@ class Activity:
 
 
 class GuideTour(Activity):
-    def __init__(self, name: str, location: str, price: Decimal | int | str, tips_included: bool) -> None:
-        super().__init__(name, location, price)
+    def __init__(self, name: str, location: str, price: Decimal | int | str, starts_at: datetime, tips_included: bool) -> None:
+        super().__init__(name, location, price, starts_at)
         self.tips_included: bool = tips_included
 
     def describe(self) -> str:
@@ -84,12 +115,13 @@ class GuideTour(Activity):
 
     @classmethod
     def to_activity(cls, data: dict) -> GuideTour:
-        return cls(data['name'], data['location'], price_from_json(data['price']), data['tips_included'])
+        return cls(data['name'], data['location'], price_from_json(data['price']), _start_from_json(data['starts_at']),
+                   data['tips_included'])
 
 
 class Pubcrawl(Activity):
-    def __init__(self, name: str, location: str, price: Decimal | int | str, drinks_included: int) -> None:
-        super().__init__(name, location, price)
+    def __init__(self, name: str, location: str, price: Decimal | int | str, starts_at: datetime, drinks_included: int) -> None:
+        super().__init__(name, location, price, starts_at)
         self.drinks_included: int = drinks_included
 
     def describe(self) -> str:
@@ -103,4 +135,5 @@ class Pubcrawl(Activity):
 
     @classmethod
     def to_activity(cls, data: dict) -> Pubcrawl:
-        return cls(data['name'], data['location'], price_from_json(data['price']), data['drinks_included'])
+        return cls(data['name'], data['location'], price_from_json(data['price']), _start_from_json(data['starts_at']),
+                   data['drinks_included'])

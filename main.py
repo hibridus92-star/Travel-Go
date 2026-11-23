@@ -9,35 +9,47 @@ import os
 import shutil
 import sys
 from collections.abc import Callable
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 from exceptions.errors import (
+    ActivityNotInTripError,
+    ActivityOutsideTripDatesError,
     DuplicateParticipantError,
     InsufficientPointsError,
     InvalidActivityNameError,
     InvalidPriceError,
+    InvalidStartTimeError,
+    InvalidTripDatesError,
+    InvalidTripFileError,
     InvalidTypeError,
     InvalidPointsAmountError,
     InvalidTravelPointsBalanceError,
     InvalidUserIdError,
     ParticipantNotFoundError,
+    TripLockedError,
     UserNotFoundError,
 )
 from models.activity import Activity, GuideTour, Pubcrawl
-from models.trip import Trip
+from models.trip import Trip, TripStatus
 from models.user import User
 
 DATA_DIR: str = "data"
 DATA_FILE: str = os.path.join(DATA_DIR, "malta.json")
+
+# Sample values shared by the demos: a five-day trip and two evening and morning activities
+TRIP_START: date = date(2027, 3, 12)
+TRIP_END: date = date(2027, 3, 16)
+MORNING: datetime = datetime(2027, 3, 14, 10, 0)
+NIGHT: datetime = datetime(2027, 3, 14, 21, 0)
 
 
 def demo_activities() -> None:
     """Activities: types, description, comparison by price and creation counter."""
     before: int = Activity.events_count
 
-    historic_walk: GuideTour = GuideTour("Historic Walk", "Central Square", Decimal("10.00"), True)
-    drinkers_night: Pubcrawl = Pubcrawl("Drinkers Night", "The Dolphin Shire", Decimal("25.90"), 2)
+    historic_walk: GuideTour = GuideTour("Historic Walk", "Central Square", Decimal("10.00"), MORNING, True)
+    drinkers_night: Pubcrawl = Pubcrawl("Drinkers Night", "The Dolphin Shire", Decimal("25.90"), NIGHT, 2)
 
     print(historic_walk.describe())
     print(drinkers_night.describe())
@@ -59,7 +71,7 @@ def demo_prices() -> None:
     print("Decimal: 0.10 + 0.20 =", Decimal("0.10") + Decimal("0.20"))  # 0.30
 
     # A price is stored with exactly two decimals and saved as text
-    walk: GuideTour = GuideTour("Historic Walk", "Central Square", "10", True)
+    walk: GuideTour = GuideTour("Historic Walk", "Central Square", "10", MORNING, True)
     print("Price stored as:", walk.price)  # 10.00
     print("Price saved as:", repr(walk.to_dict()["price"]))  # '10.00'
 
@@ -67,13 +79,13 @@ def demo_prices() -> None:
     before: int = Activity.events_count
     for bad_price in (-5, "12.345", 9.99, "abc", True):
         try:
-            GuideTour("Test", "Somewhere", bad_price, False)
+            GuideTour("Test", "Somewhere", bad_price, MORNING, False)
         except InvalidPriceError as e:
             print("Rejected price:", e)
 
     # Invalid names are rejected too
     try:
-        Pubcrawl("   ", "Somewhere", "5.00", 1)
+        Pubcrawl("   ", "Somewhere", "5.00", NIGHT, 1)
     except InvalidActivityNameError as e:
         print("Rejected name:", e)
     print("Activities created by mistake:", Activity.events_count - before)  # 0
@@ -81,16 +93,16 @@ def demo_prices() -> None:
     # A file saved before prices became decimals still loads
     old_data: dict = {
         "type": "GuideTour", "name": "Old Walk", "location": "Square",
-        "price": 25.9, "tips_included": True,
+        "price": 25.9, "starts_at": "2027-03-14T10:00:00", "tips_included": True,
     }
     print("Old float price loaded as:", Activity.activity_from_dict(old_data).price)  # 25.90
 
 
 def demo_trip_persistence() -> None:
-    """Trips: total cost, alcohol-related count and a JSON round trip."""
-    historic_walk: GuideTour = GuideTour("Historic Walk", "Central Square", Decimal("10.00"), True)
-    drinkers_night: Pubcrawl = Pubcrawl("Drinkers Night", "The Dolphin Shire", Decimal("25.90"), 2)
-    malta: Trip = Trip(2334, "La Valleta", [historic_walk, drinkers_night])
+    """Trips: dates, price per person, alcohol-related count and a JSON round trip."""
+    historic_walk: GuideTour = GuideTour("Historic Walk", "Central Square", Decimal("10.00"), MORNING, True)
+    drinkers_night: Pubcrawl = Pubcrawl("Drinkers Night", "The Dolphin Shire", Decimal("25.90"), NIGHT, 2)
+    malta: Trip = Trip(2334, "La Valleta", TRIP_START, TRIP_END, [historic_walk, drinkers_night])
 
     malta.save(DATA_FILE)
     print("Trip saved successfully.")
@@ -99,7 +111,9 @@ def demo_trip_persistence() -> None:
     print("\nTrip loaded successfully.")
     print(f"Destination: {loaded_trip.destination}")
     print(f"ID: {loaded_trip.id_number}")
-    print(f"Total cost: {loaded_trip.event_total_cost()}")
+    print(f"Dates: {loaded_trip.start_date} to {loaded_trip.end_date}")
+    print(f"Status: {loaded_trip.status.value}")
+    print(f"Price per person: {loaded_trip.price_per_person()}")
     print(f"Alcoholic events: {loaded_trip.alcoholic_events()}")
     print("\nDescription of the loaded trip:", loaded_trip.describe())
 
@@ -107,16 +121,102 @@ def demo_trip_persistence() -> None:
     print("Second activity is a Pubcrawl:", isinstance(loaded_trip.activities[1], Pubcrawl))
 
 
+def demo_trip_dates() -> None:
+    """Trips: dates, the start of each activity and the rule that activities fall inside the trip."""
+    # 1. Dates are mandatory and must be in order
+    try:
+        Trip(1, "Rome", TRIP_END, TRIP_START, [])
+    except InvalidTripDatesError as e:
+        print("1:", e)
+
+    # 2. An activity needs a date and a time, not only a date
+    try:
+        GuideTour("Walk", "Somewhere", "10.00", date(2027, 3, 14), True)  # type: ignore[arg-type]
+    except InvalidStartTimeError as e:
+        print("2:", e)
+
+    # 3. Activities inside the dates are accepted, the first and last day included
+    trip: Trip = Trip(1, "La Valleta", TRIP_START, TRIP_END, [])
+    trip.add_activity(GuideTour("Opening Walk", "Central Square", "10.00", datetime(2027, 3, 12, 0, 0), True))
+    trip.add_activity(GuideTour("Farewell Walk", "Central Square", "10.00", datetime(2027, 3, 16, 23, 59), True))
+    print("3: activities in the trip:", [a.name for a in trip.activities])
+
+    # 4. An activity outside the dates is rejected and the trip does not change
+    late: Pubcrawl = Pubcrawl("Late Night", "The Dolphin Shire", "25.90", datetime(2027, 3, 17, 0, 0), 2)
+    try:
+        trip.add_activity(late)
+    except ActivityOutsideTripDatesError as e:
+        print("4:", e)
+    print("   activities unchanged:", len(trip.activities))
+
+    # 5. Removing an activity that is not in the trip
+    try:
+        trip.remove_activity(late)
+    except ActivityNotInTripError as e:
+        print("5:", e)
+
+    # 6. The same activity can belong to two trips
+    shared: GuideTour = GuideTour("Shared Walk", "Central Square", "10.00", MORNING, True)
+    first: Trip = Trip(2, "La Valleta", TRIP_START, TRIP_END, [shared])
+    second: Trip = Trip(3, "La Valleta", date(2027, 3, 14), date(2027, 3, 14), [shared])
+    print("6: same object in both trips:", first.activities[0] is second.activities[0])
+
+    # 7. A file saved before trips had dates cannot be loaded, and the error names the field
+    old_file: str = os.path.join(DATA_DIR, "trip_without_dates.json")
+    with open(old_file, "w") as f:
+        json.dump({"id_number": 2334, "destination": "La Valleta", "activities": []}, f)
+    try:
+        Trip.load(old_file)
+    except InvalidTripFileError as e:
+        print("7:", e)
+
+
+def demo_trip_lifecycle() -> None:
+    """Trips: draft and purchased, the lock on purchased trips and the price per person."""
+    walk: GuideTour = GuideTour("Historic Walk", "Central Square", "10.00", MORNING, True)
+    night: Pubcrawl = Pubcrawl("Drinkers Night", "The Dolphin Shire", "25.90", NIGHT, 2)
+    trip: Trip = Trip(1, "La Valleta", TRIP_START, TRIP_END, [walk, night])
+
+    # 1. A new trip is a draft and can be edited
+    print("1: status:", trip.status.value)
+    trip.add_participant("ana")
+    trip.add_participant("luis")
+
+    # 2. Every price is per person, and the total depends on the participants
+    print("2: price per person:", trip.price_per_person(), "| total for", len(trip.participant_ids), "people:", trip.total_price())
+
+    # 3. Once purchased the trip is locked
+    trip.mark_purchased()
+    print("3: status:", trip.status.value, "| is purchased:", trip.status is TripStatus.PURCHASED)
+    for label, change in (
+        ("add an activity", lambda: trip.add_activity(walk)),
+        ("remove an activity", lambda: trip.remove_activity(walk)),
+        ("add a participant", lambda: trip.add_participant("eva")),
+        ("remove a participant", lambda: trip.remove_participant("ana")),
+        ("purchase again", trip.mark_purchased),
+    ):
+        try:
+            change()
+        except TripLockedError as e:
+            print(f"   {label}: rejected ->", e)
+    print("   nothing changed:", len(trip.activities), "activities,", trip.participant_ids, "| total:", trip.total_price())
+
+    # 4. The status survives saving and loading
+    status_file: str = os.path.join(DATA_DIR, "purchased_trip.json")
+    trip.save(status_file)
+    print("4: loaded status:", Trip.load(status_file).status.value)
+
+
 def demo_participants() -> None:
     """Trips: how a trip manages its participants."""
-    activity: GuideTour = GuideTour("Historic Walk", "Central Square", Decimal("10.00"), True)
+    activity: GuideTour = GuideTour("Historic Walk", "Central Square", Decimal("10.00"), MORNING, True)
 
     # 1. A trip without participants starts empty
-    trip01: Trip = Trip(1, "Rome", [activity])
+    trip01: Trip = Trip(1, "Rome", TRIP_START, TRIP_END, [activity])
     print("1:", trip01.participant_ids)
 
     # 2. Two trips: adding to one must not affect the other
-    trip02: Trip = Trip(2, "Paris", [])
+    trip02: Trip = Trip(2, "Paris", TRIP_START, TRIP_END, [])
     trip01.add_participant("a")
     print("2: trip01 =", trip01.participant_ids, "| trip02 =", trip02.participant_ids)
 
@@ -143,7 +243,7 @@ def demo_participants() -> None:
 
     # 7. The constructor copies the list it receives
     ids: list[str] = ["a", "b"]
-    trip03: Trip = Trip(3, "Lima", [], ids)
+    trip03: Trip = Trip(3, "Lima", TRIP_START, TRIP_END, [], ids)
     ids.append("c")
     print("7: trip03 =", trip03.participant_ids, "| original list =", ids)
 
@@ -154,7 +254,7 @@ def demo_participant_persistence() -> None:
     old_file: str = os.path.join(DATA_DIR, "malta_old.json")
 
     # Round trip
-    trip: Trip = Trip(1, "Malta", [])
+    trip: Trip = Trip(1, "Malta", TRIP_START, TRIP_END, [])
     trip.add_participant("a")
     trip.add_participant("b")
     trip.save(new_file)
@@ -167,9 +267,12 @@ def demo_participant_persistence() -> None:
     except DuplicateParticipantError as e:
         print("Duplicate rejected:", e)
 
-    # Old format: a file without the participant_ids field
+    # Older format: a file without the participant_ids and status fields
     with open(old_file, "w") as f:
-        json.dump({"id_number": 2334, "destination": "La Valleta", "activities": []}, f)
+        json.dump({
+            "id_number": 2334, "destination": "La Valleta",
+            "start_date": "2027-03-12", "end_date": "2027-03-16", "activities": [],
+        }, f)
     old_trip: Trip = Trip.load(old_file)
     print("Old file loaded:", old_trip.destination, old_trip.participant_ids)  # La Valleta []
 
@@ -287,6 +390,8 @@ DEMOS: dict[str, Callable[[], None]] = {
     "activities": demo_activities,
     "prices": demo_prices,
     "trips": demo_trip_persistence,
+    "trip-dates": demo_trip_dates,
+    "trip-lifecycle": demo_trip_lifecycle,
     "participants": demo_participants,
     "participant-persistence": demo_participant_persistence,
     "user-points": demo_user_points,

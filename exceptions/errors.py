@@ -1,5 +1,7 @@
 """Custom exceptions for Travel&Go."""
 
+from datetime import date, datetime
+
 
 class ActivityError(Exception):
     """Base exception for invalid activity data."""
@@ -20,6 +22,15 @@ class InvalidPriceError(ActivityError):
         self.price: object = price
         self.reason: str = reason
         super().__init__(f"Invalid price {price!r}: {reason}.")
+
+
+class InvalidStartTimeError(ActivityError):
+    """Raised when an activity start is not a datetime without a time zone."""
+
+    def __init__(self, starts_at: object, reason: str) -> None:
+        self.starts_at: object = starts_at
+        self.reason: str = reason
+        super().__init__(f"Invalid start {starts_at}: {reason}.")
 
 
 class InvalidTypeError(ActivityError):
@@ -101,3 +112,57 @@ class InvalidUserIdError(UserStorageError):
         super().__init__(
             f"Invalid user ID {user_id!r}: only letters, digits, '-' and '_' are allowed."
         )
+
+
+class TripError(Exception):
+    """Base exception for invalid trip data and invalid trip operations."""
+
+
+class InvalidTripDatesError(TripError):
+    """Raised when the start and end dates of a trip are not usable."""
+
+    def __init__(self, start_date: object, end_date: object, reason: str) -> None:
+        self.start_date: object = start_date
+        self.end_date: object = end_date
+        self.reason: str = reason
+        super().__init__(f"Invalid trip dates {start_date} to {end_date}: {reason}.")
+
+
+class ActivityOutsideTripDatesError(TripError):
+    """Raised when an activity does not take place between the start and end of the trip."""
+
+    def __init__(self, activity_name: str, starts_at: datetime, start_date: date, end_date: date) -> None:
+        self.activity_name: str = activity_name
+        self.starts_at: datetime = starts_at
+        self.start_date: date = start_date
+        self.end_date: date = end_date
+        super().__init__(
+            f"Activity '{activity_name}' starts on {starts_at:%Y-%m-%d %H:%M}, "
+            f"outside the trip dates ({start_date} to {end_date})."
+        )
+
+
+class ActivityNotInTripError(TripError):
+    """Raised when removing an activity that is not part of the trip."""
+
+    def __init__(self, activity_name: str) -> None:
+        self.activity_name: str = activity_name
+        super().__init__(f"Activity '{activity_name}' is not part of this trip.")
+
+
+class TripLockedError(TripError):
+    """Raised when a purchased trip is changed."""
+
+    def __init__(self, trip_id: int, action: str) -> None:
+        self.trip_id: int = trip_id
+        self.action: str = action
+        super().__init__(f"Trip {trip_id} is already purchased and cannot be changed ({action}).")
+
+
+class InvalidTripFileError(TripError):
+    """Raised when a saved trip has a missing or unreadable field."""
+
+    def __init__(self, field: str, reason: str) -> None:
+        self.field: str = field
+        self.reason: str = reason
+        super().__init__(f"Invalid trip file, field '{field}': {reason}.")
